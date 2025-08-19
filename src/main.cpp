@@ -11,7 +11,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <iomanip>
-#include <climits>
+#include <cctype>
 
 #include "../include/problem.hpp"
 #include "../include/as.hpp"
@@ -21,70 +21,64 @@
 
 namespace fs = std::filesystem;
 
-// parse seguro de inteiro (string -> long long) sem exceptions
-static long long parse_ll_str(const std::string& s_in, long long defval) {
-    auto is_space = [](char c){ return c==' '||c=='\t'||c=='\r'||c=='\n'; };
-    size_t i=0, n=s_in.size();
-    while (i<n && is_space(s_in[i])) ++i;
-    if (i==n) return defval;
-    bool neg=false;
-    if (s_in[i]=='+' || s_in[i]=='-'){ neg = (s_in[i]=='-'); ++i; }
-    if (i==n || s_in[i]<'0' || s_in[i]>'9') return defval;
-    long long val = 0;
-    for (; i<n && s_in[i]>='0' && s_in[i]<='9'; ++i){
-        int d = s_in[i]-'0';
-        if (!neg){
-            if (val > (LLONG_MAX - d)/10) return defval; // overflow
-            val = val*10 + d;
-        } else {
-            if (val < (LLONG_MIN + d)/10) return defval; // underflow
-            val = val*10 - d;
-        }
-    }
-    while (i<n){
-        if (!is_space(s_in[i])) return defval;
-        ++i;
-    }
-    return val;
-}
+// --------------------- helpers ---------------------
 
-// lista p01..p08 em data/
-static std::vector<std::string> listarInstancias() {
+static std::vector<std::string> read_list(const std::string& path) {
     std::vector<std::string> files;
-    for (int i = 1; i <= 8; ++i) {
-        char buf[16];
-        std::snprintf(buf, sizeof(buf), "p%02d", i);
-        std::string stem = buf;
-        const std::vector<std::string> exts = { ".txt", ".dat", ".kp" };
-        for (const auto& ext : exts) {
-            std::string p = std::string("data/") + stem + ext;
-            if (fs::exists(p) && fs::is_regular_file(p)) { files.push_back(p); break; }
+    std::ifstream in(path);
+    if (!in) {
+        std::cerr << "Could not open list file: " << path << "\n";
+        return files;
+    }
+    std::string line;
+    while (std::getline(in, line)) {
+        size_t A = line.find_first_not_of(" \t\r\n");
+        size_t B = line.find_last_not_of(" \t\r\n");
+        if (A == std::string::npos) continue;
+        line = line.substr(A, B - A + 1);
+        if (line.empty() || line[0] == '#') continue;
+        if (!fs::exists(line)) {
+            std::cerr << "Warning: file from list does not exist: " << line << "\n";
+            continue;
         }
+        files.push_back(line);
     }
     return files;
 }
 
 static std::unordered_map<std::string,long long> loadTargets(const std::string& path) {
+    // CSV: instance,optimal_value
     std::unordered_map<std::string,long long> tgt;
     std::ifstream in(path);
     if (!in) return tgt;
-    std::string line;
+
     auto trim = [](std::string s){
-        size_t A=s.find_first_not_of(" \t\r\n");
-        size_t B=s.find_last_not_of(" \t\r\n");
-        if (A==std::string::npos) return std::string();
-        return s.substr(A,B-A+1);
+        size_t A = s.find_first_not_of(" \t\r\n");
+        size_t B = s.find_last_not_of(" \t\r\n");
+        if (A == std::string::npos) return std::string();
+        return s.substr(A, B - A + 1);
     };
+    auto is_int = [](const std::string& s){
+        if (s.empty()) return false;
+        size_t i = (s[0] == '+' || s[0] == '-') ? 1u : 0u;
+        if (i >= s.size()) return false;
+        for (; i < s.size(); ++i) {
+            if (!std::isdigit(static_cast<unsigned char>(s[i]))) return false;
+        }
+        return true;
+    };
+
+    std::string line;
     while (std::getline(in, line)) {
-        if (line.empty() || line[0]=='#') continue;
+        line = trim(line);
+        if (line.empty() || line[0] == '#') continue;
+        std::string a, b;
         std::istringstream ss(line);
-        std::string a,b;
         if (!std::getline(ss, a, ',')) continue;
         if (!std::getline(ss, b, ',')) continue;
-        a=trim(a); b=trim(b);
-        if (a.empty() || b.empty()) continue;
-        long long v = parse_ll_str(b, LLONG_MIN);
-        if (v!=LLONG_MIN) tgt[a] = v;
+        a = trim(a); b = trim(b);
+        if (!is_int(b)) continue; // skip header
+        try { tgt[a] = std::stoll(b); } catch (...) { /* ignore */ }
     }
     return tgt;
 }
@@ -94,7 +88,7 @@ struct RunRec {
     bool feasible=false;
     double seconds=0.0;
     unsigned int seed=0;
-    std::vector<int> sel;
+    std::vector<int> sel; // 1 if chosen (0-based positions), printing as 1-based ids
 };
 
 static std::tuple<long long,long long,bool>
@@ -114,71 +108,52 @@ static double stdev(const std::vector<double>& v){
     if (v.size()<2) return 0.0; double m=mean(v), s2=0.0; for(double x:v) s2+=(x-m)*(x-m); return std::sqrt(s2/(v.size()-1));
 }
 
-static void openCSVs(std::ofstream& csvExec, std::ofstream& csvSum){
-    fs::create_directories("results");
-    csvExec.open("results/execucoes_p01_p08.csv");
-    csvSum.open("results/resumo_p01_p08.csv");
-    csvExec << "instance,variant,run,seed,value,weight,feasible,seconds,items\n";
-    csvSum  << "instance,variant,best_value,best_weight,feasible,best_seconds,mean_seconds,std_seconds,hit_optimal,target,best_seed\n";
-}
-
 static std::string itensToString(const std::vector<int>& sel){
     std::ostringstream oss; bool first=true;
     for (size_t i=0;i<sel.size();++i) if (sel[i]) { if(!first) oss<<" "; first=false; oss<<(i+1); }
     if (first) return "-"; return oss.str();
 }
 
-static void printResumo(const std::string& var, const KnapsackProblem& prob,
-                        const std::vector<RunRec>& runs, long long target,
+static void openCSVs(std::ofstream& csvExec, std::ofstream& csvSum){
+    fs::create_directories("results/jooken");
+    csvExec.open("results/jooken/execucoes_jooken.csv");
+    csvSum.open("results/jooken/resumo_jooken.csv");
+    // keep this header order
+    csvExec << "instance,variant,run,seed,value,weight,feasible,seconds,items\n";
+    csvSum  << "instance,variant,best_value,best_weight,feasible,best_seconds,mean_seconds,std_seconds,hit_optimal,target,best_seed\n";
+}
+
+// agora recebemos o rotulo da instancia (instLabel) ja normalizado
+static void printResumo(const std::string& instLabel,
+                        const std::string& var,
+                        const KnapsackProblem& prob,
+                        const std::vector<RunRec>& runs,
+                        long long target,
                         std::ofstream& csvSum) {
-    std::vector<double> vals, times;
-    vals.reserve(runs.size()); times.reserve(runs.size());
-    long long bestV = -1, worstV = (1LL<<60);
-    int bestIdx = -1; double sumT=0.0;
+    std::vector<double> times;
+    times.reserve(runs.size());
 
+    // escolhe melhor entre factiveis; se nenhum for factivel, pega o melhor valor mesmo assim
+    long long bestV = -1;
+    int bestIdx = -1;
+
+    // primeiro, tenta apenas factiveis
     for (size_t i=0;i<runs.size();++i){
-        vals.push_back((double)runs[i].value);
         times.push_back(runs[i].seconds);
-        sumT+=runs[i].seconds;
+        if (!runs[i].feasible) continue;
         if (runs[i].value > bestV) { bestV = runs[i].value; bestIdx=(int)i; }
-        if (runs[i].value < worstV) worstV = runs[i].value;
     }
-
-    std::cout << "\n--- Resultados Finais Consolidados (Media de " << runs.size() << " Execucoes) ---\n";
-    std::cout << "Media do Melhor Valor: " << std::fixed << std::setprecision(2) << mean(vals) << "\n";
-    std::cout << "Desvio Padrao do Valor: " << std::setprecision(2) << stdev(vals) << "\n";
-    std::cout << "Melhor Valor GLOBAL Obtido: " << bestV << "\n";
-    std::cout << "Pior Valor GLOBAL Obtido: " << worstV << "\n";
-    std::cout << "---------------------------------------------\n";
-    std::cout << "Media do Tempo de Execucao: " << std::setprecision(4) << mean(times) << "s\n";
-    std::cout << "Desvio Padrao do Tempo: " << std::setprecision(4) << stdev(times) << "s\n";
-    std::cout << "---------------------------------------------\n";
-    std::cout << "Tempo Total de Todas as " << runs.size() << " Execucoes: " << std::setprecision(4) << sumT << "s\n\n";
-
-    const RunRec& best = runs[bestIdx];
-    long long pesoTotal = best.weight;
-
-    std::cout << "--- Detalhes da Melhor Solucao Encontrada GLOBALMENTE ---\n";
-    std::cout << "Melhor Valor Alcancado: " << best.value << "\n";
-    std::cout << "Itens Incluidos (ID, Peso, Valor):\n";
-    const auto& itens = prob.getItens();
-    for (size_t i=0;i<best.sel.size() && i<itens.size();++i){
-        if (best.sel[i]) {
-            std::cout << "- Item " << (i+1) << " (Peso: " << itens[i].peso << ", Valor: " << itens[i].valor << ")\n";
+    // se nenhum factivel, considere todos
+    if (bestIdx < 0) {
+        for (size_t i=0;i<runs.size();++i){
+            if (runs[i].value > bestV) { bestV = runs[i].value; bestIdx=(int)i; }
         }
     }
-    std::cout << "Peso Total da Solucao: " << pesoTotal << " / " << prob.getCapacidade() << "\n";
-    std::cout << "Esta solucao foi encontrada na Execucao " << (bestIdx+1)
-              << " (Tempo: " << best.seconds << "s)\n";
 
-    bool hit = (target >= 0 && bestV >= target);
-    if (target >= 0) {
-        std::cout << "\nAtingiu o otimo conhecido?  " << (hit? "sim":"NAO") << "  | alvo=" << target << "\n";
-    } else {
-        std::cout << "\nAtingiu o otimo conhecido?  (sem alvo configurado)\n";
-    }
+    const RunRec& best = runs[bestIdx];
+    bool hit = (target >= 0 && best.value >= target && best.feasible);
 
-    csvSum << prob.getNome() << "," << var << ","
+    csvSum << instLabel << "," << var << ","
            << best.value << "," << best.weight << ","
            << (best.feasible?1:0) << "," << best.seconds << ","
            << mean(times) << "," << stdev(times) << ","
@@ -186,19 +161,18 @@ static void printResumo(const std::string& var, const KnapsackProblem& prob,
            << best.seed << "\n";
 }
 
-static void rodarVariante(const std::string& var, const KnapsackProblem& prob,
-                          int repeats, unsigned int base_seed,
-                          std::vector<RunRec>& out, std::ofstream& csvExec) {
+static void runVariant(const std::string& instLabel,
+                       const std::string& var,
+                       const KnapsackProblem& prob,
+                       int repeats, unsigned int base_seed,
+                       std::vector<RunRec>& out, std::ofstream& csvExec) {
     out.clear(); out.reserve(repeats);
 
-    // Parametros fixos (nao aparecem no console)
     int ants=100, iters=600, w=5;
     double alpha=1.0, beta=3.0, rho=0.1, q0=0.90, xi=0.10;
 
-    std::cout << "\n>>> " << var << " - Execucoes (" << repeats << "x)\n";
-
     for (int rep=1; rep<=repeats; ++rep) {
-        unsigned int seed = base_seed + (unsigned int)rep; // seed distinta por execucao
+        unsigned int seed = base_seed + (unsigned int)rep;
         std::vector<int> sel;
         auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -215,7 +189,7 @@ static void rodarVariante(const std::string& var, const KnapsackProblem& prob,
             ACS alg(ants, iters, alpha, beta, rho, q0, xi, seed);
             sel = alg.executar(prob);
         } else {
-            throw std::runtime_error("Variante desconhecida: " + var);
+            throw std::runtime_error("Unknown variant: " + var);
         }
 
         auto t1 = std::chrono::high_resolution_clock::now();
@@ -223,32 +197,38 @@ static void rodarVariante(const std::string& var, const KnapsackProblem& prob,
 
         auto [V,W,ok] = evalSel(sel, prob);
 
-        std::cout << "Execucao " << rep
-                  << ": valor=" << V
-                  << " peso=" << W
-                  << " viavel=" << (ok? "sim":"NAO")
-                  << " tempo=" << std::fixed << std::setprecision(4) << dt.count() << "s\n";
-        std::cout << "  Itens: ";
-        bool first=true; for (size_t k=0;k<sel.size();++k) if (sel[k]) {
-            if(!first) std::cout << ", ";
-            first=false; std::cout << (k+1);
-        }
-        if(first) std::cout << "(nenhum)";
-        std::cout << "\n";
-
         RunRec r; r.value=V; r.weight=W; r.feasible=ok; r.seconds=dt.count(); r.seed=seed; r.sel=std::move(sel);
         out.push_back(std::move(r));
 
-        csvExec << prob.getNome() << "," << var << "," << rep << ","
+        csvExec << instLabel << "," << var << "," << rep << ","
                 << seed << "," << V << "," << W << "," << (ok?1:0) << ","
                 << dt.count() << "," << itensToString(out.back().sel) << "\n";
     }
 }
 
-int main() {
+// --------------------- main ---------------------
+
+int main(int argc, char** argv) {
     try {
-        auto files = listarInstancias();
-        if (files.empty()) { std::cerr << "Nenhuma instancia p01..p08 encontrada em ./data\n"; return 1; }
+        std::vector<std::string> files;
+
+        if (argc == 3 && std::string(argv[1]) == "--list") {
+            files = read_list(argv[2]);
+        } else if (argc == 3 && std::string(argv[1]) == "--file") {
+            if (!fs::exists(argv[2])) {
+                std::cerr << "Input file not found: " << argv[2] << "\n";
+                return 1;
+            }
+            files.push_back(argv[2]);
+        } else {
+            const std::string default_list = "config/sets/jooken_all.txt";
+            files = read_list(default_list);
+            if (files.empty()) {
+                std::cerr << "No files found. Provide --list <file> or run the normalize script to generate "
+                             "config/sets/jooken_all.txt\n";
+                return 1;
+            }
+        }
 
         auto targets = loadTargets("config/targets.csv");
 
@@ -256,37 +236,48 @@ int main() {
         openCSVs(csvExec, csvSum);
 
         const int repeats = 20;
-        const unsigned int base_seed = 987654321u; // mude se desejar outra reproducibilidade
+        const unsigned int base_seed = 12345;
 
         for (const auto& path : files) {
+            // rotulo da instancia: sempre usar o caminho lido da lista, normalizado
+            std::string instLabel;
+            try {
+                instLabel = fs::weakly_canonical(path).string();
+            } catch (...) {
+                instLabel = fs::path(path).lexically_normal().string();
+            }
+
             KnapsackProblem problem(path);
-            std::cout << "\n==============================\n";
-            std::cout << "Instancia: " << problem.getNome()
-                      << " | Capacidade=" << problem.getCapacidade()
-                      << " | Itens=" << problem.getItens().size() << "\n";
-            std::cout << "==============================\n";
 
-            long long alvo = targets.count(problem.getNome()) ? targets[problem.getNome()] : -1;
+            long long alvo = -1;
+            // tenta bater pelo caminho normalizado e pelo path original
+            auto itA = targets.find(instLabel);
+            if (itA != targets.end()) alvo = itA->second;
+            if (alvo < 0) {
+                auto itB = targets.find(path);
+                if (itB != targets.end()) alvo = itB->second;
+            }
 
-            { std::vector<RunRec> runs; rodarVariante("AS", problem, repeats, base_seed, runs, csvExec);
-              printResumo("AS", problem, runs, alvo, csvSum); }
+            { std::vector<RunRec> runs; runVariant(instLabel, "AS", problem, repeats, base_seed, runs, csvExec);
+              printResumo(instLabel, "AS", problem, runs, alvo, csvSum); }
 
-            { std::vector<RunRec> runs; rodarVariante("ASRank", problem, repeats, base_seed+100000u, runs, csvExec);
-              printResumo("ASRank", problem, runs, alvo, csvSum); }
+            { std::vector<RunRec> runs; runVariant(instLabel, "ASRank", problem, repeats, base_seed+100000, runs, csvExec);
+              printResumo(instLabel, "ASRank", problem, runs, alvo, csvSum); }
 
-            { std::vector<RunRec> runs; rodarVariante("MMAS", problem, repeats, base_seed+200000u, runs, csvExec);
-              printResumo("MMAS", problem, runs, alvo, csvSum); }
+            { std::vector<RunRec> runs; runVariant(instLabel, "MMAS", problem, repeats, base_seed+200000, runs, csvExec);
+              printResumo(instLabel, "MMAS", problem, runs, alvo, csvSum); }
 
-            { std::vector<RunRec> runs; rodarVariante("ACS", problem, repeats, base_seed+300000u, runs, csvExec);
-              printResumo("ACS", problem, runs, alvo, csvSum); }
+            { std::vector<RunRec> runs; runVariant(instLabel, "ACS", problem, repeats, base_seed+300000, runs, csvExec);
+              printResumo(instLabel, "ACS", problem, runs, alvo, csvSum); }
         }
 
-        std::cout << "\nConcluido.\nArquivos salvos em:\n"
-                  << " - results/execucoes_p01_p08.csv\n"
-                  << " - results/resumo_p01_p08.csv\n";
+        std::cout << "Done.\nResults saved to:\n"
+                  << " - results/jooken/execucoes_jooken.csv\n"
+                  << " - results/jooken/resumo_jooken.csv\n";
         return 0;
+
     } catch (const std::exception& e) {
-        std::cerr << "Erro: " << e.what() << "\n";
+        std::cerr << "Error: " << e.what() << "\n";
         return 1;
     }
 }
