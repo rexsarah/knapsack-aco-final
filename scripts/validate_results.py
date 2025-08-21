@@ -80,6 +80,7 @@ def read_clean(path: pathlib.Path) -> pd.DataFrame:
     df = coerce_numeric(df)
     if "items" in df.columns:
         df["items"] = df["items"].astype(str)
+    # chaves sempre como string "limpa"
     for k in ["instance","variant"]:
         if k in df.columns:
             df[k] = df[k].astype(str).str.strip()
@@ -87,7 +88,7 @@ def read_clean(path: pathlib.Path) -> pd.DataFrame:
 
 def main():
     if not EXEC_ALL.exists() or not RESM_ALL.exists():
-        raise SystemExit("Faltam *_ALL.csv. Rode antes: python scripts/rebuild_all.py")
+        raise SystemExit("Faltam *_ALL.csv. Rode antes: python scripts/rebuild_all.py OU copie os CSVs finais para *_ALL.csv")
 
     exec_df = read_clean(EXEC_ALL)
     resm_df = read_clean(RESM_ALL)
@@ -109,7 +110,7 @@ def main():
                      .reset_index())
 
     # melhor valor encontrado nas execucoes
-    best_exec = (exec_df.sort_values(["instance","variant","value","seconds"],
+    best_exec = (exec_df.sort_values(["instance","variant","value", "seconds"],
                                      ascending=[True, True, False, True])
                         .groupby(["instance","variant"], dropna=False)
                         .agg(best_value_exec=("value","max"),
@@ -153,7 +154,7 @@ def main():
             "got":      r["best_value"],
         })
 
-    # 3) contagem de runs != 20
+    # 3) contagem de runs != 20 (ou o que tiver)
     for _, r in counts.iterrows():
         if r["runs"] != 20:
             anomalies.append({
@@ -162,7 +163,7 @@ def main():
                 "variant":  r["variant"],
                 "run":      "",
                 "seed":     "",
-                "msg":      "contagem de runs != 20",
+                "msg":      f"contagem de runs != 20",
                 "expected": 20,
                 "got":      int(r["runs"]),
             })
@@ -183,18 +184,18 @@ def main():
     })
     summary.to_csv(OUT_SUMM, index=False, quoting=csv.QUOTE_MINIMAL)
 
-    # Excel: usar openpyxl para permitir append com replace de abas
-    try:
-        import openpyxl  # noqa: F401
-    except Exception:
-        raise SystemExit("Precisa do pacote openpyxl para escrever em modo append no Excel. "
-                         "Instale com: pip install openpyxl")
-
-    mode = "a" if OUT_XLS.exists() else "w"
-    with pd.ExcelWriter(OUT_XLS, engine="openpyxl", mode=mode, if_sheet_exists="replace") as xw:
-        resm2.to_excel(xw, sheet_name="validacao", index=False)
-        an_df.to_excel(xw, sheet_name="anomalies", index=False)
-        summary.to_excel(xw, sheet_name="summary_valid", index=False)
+    # Excel (se existir -> append/replace; se nao existir -> write)
+    OUT_XLS.parent.mkdir(parents=True, exist_ok=True)
+    if OUT_XLS.exists():
+        with pd.ExcelWriter(OUT_XLS, engine="openpyxl", mode="a", if_sheet_exists="replace") as xw:
+            resm2.to_excel(xw, sheet_name="validacao", index=False)
+            an_df.to_excel(xw, sheet_name="anomalies", index=False)
+            summary.to_excel(xw, sheet_name="summary_valid", index=False)
+    else:
+        with pd.ExcelWriter(OUT_XLS, engine="openpyxl", mode="w") as xw:
+            resm2.to_excel(xw, sheet_name="validacao", index=False)
+            an_df.to_excel(xw, sheet_name="anomalies", index=False)
+            summary.to_excel(xw, sheet_name="summary_valid", index=False)
 
     print("Validacao concluida.")
     print("Anomalias:", OUT_ANOM)

@@ -1,7 +1,0 @@
-C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\nmge\nmge5.dat
-C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\nmge\nmge6.dat
-C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\nmge\nmge7.dat
-C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\nmge\nmge4.dat
-C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\nmge\nmge1.dat
-C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\nmge\nmge2.dat
-C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\nmge\nmge3.dat
