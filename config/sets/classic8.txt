@@ -1,0 +1,8 @@
+C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\classic8_found\p01.txt
+C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\classic8_found\p02.txt
+C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\classic8_found\p03.txt
+C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\classic8_found\p04.txt
+C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\classic8_found\p05.txt
+C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\classic8_found\p06.txt
+C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\classic8_found\p07.txt
+C:\Users\Vibe\Documents\knapsack-4aco-cpp-tcc-master\data\classic8_found\p08.txt

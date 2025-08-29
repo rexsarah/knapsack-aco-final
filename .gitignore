@@ -1,23 +1,5 @@
-﻿# Build / bin
-*.exe
-*.out
-*.o
-*.obj
-*.pdb
-*.ilk
-
-# IDE / editor
-.vscode/
-*.code-workspace
-
-# Dados e resultados grandes
+﻿build/
 results/
-logs/
-data/**/generated/
+data/
 *.csv
-*.xlsx
-
-# Python venv e cache
-.venv/
-__pycache__/
-*.pyc
+*.log

@@ -1,0 +1,17 @@
+# ninja log v7
+44	68	7775085309386408	C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_ninja/CMakeFiles/cmake.verify_globs	c3d2ccc149725dc1
+91	3538	7775085309857383	CMakeFiles/main.dir/src/problem.cpp.obj	a8d32e66f8e2744e
+61	1502	7775054091754419	CMakeFiles/main.dir/src/acs.cpp.obj	83b5963ad9ad3d86
+73	1537	7775054091868831	CMakeFiles/main.dir/src/mmas.cpp.obj	3ea7a78b366f9ca8
+64	1562	7775054091779068	CMakeFiles/main.dir/src/as.cpp.obj	7a36b40c1a342fbc
+67	1737	7775054091808993	CMakeFiles/main.dir/src/asRank.cpp.obj	9ebd5812668162d0
+70	2846	7775054091838905	CMakeFiles/main.dir/src/main.cpp.obj	c9bc14bea5a47d68
+2847	2964	7775054119617271	bin/main.exe	fb575c6c0c075d5f
+55	80	7775088222060589	C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_ninja/CMakeFiles/cmake.verify_globs	c3d2ccc149725dc1
+85	2343	7775088222358919	CMakeFiles/main.dir/src/acs.cpp.obj	83b5963ad9ad3d86
+99	2422	7775088222489822	CMakeFiles/main.dir/src/mmas.cpp.obj	3ea7a78b366f9ca8
+89	2453	7775088222387323	CMakeFiles/main.dir/src/as.cpp.obj	7a36b40c1a342fbc
+92	2701	7775088222427910	CMakeFiles/main.dir/src/asRank.cpp.obj	9ebd5812668162d0
+102	2965	7775088222523626	CMakeFiles/main.dir/src/problem.cpp.obj	a8d32e66f8e2744e
+95	3960	7775088222460216	CMakeFiles/main.dir/src/main.cpp.obj	c9bc14bea5a47d68
+3961	4407	7775088261104807	bin/main.exe	fb575c6c0c075d5f

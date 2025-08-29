@@ -1,0 +1,3 @@
+C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_mingw/CMakeFiles/main.dir
+C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_mingw/CMakeFiles/edit_cache.dir
+C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_mingw/CMakeFiles/rebuild_cache.dir

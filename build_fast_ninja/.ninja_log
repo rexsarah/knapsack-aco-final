@@ -1,0 +1,10 @@
+# ninja log v7
+44	72	7775954140002003	C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_fast_ninja/CMakeFiles/cmake.verify_globs	e3590575d0c1a54b
+96	3727	7775935932814876	CMakeFiles/main.dir/src/acs.cpp.obj	83b5963ad9ad3d86
+121	3730	7775935933069169	CMakeFiles/main.dir/src/mmas.cpp.obj	3ea7a78b366f9ca8
+103	3799	7775935932885491	CMakeFiles/main.dir/src/as.cpp.obj	7a36b40c1a342fbc
+110	4028	7775935932957389	CMakeFiles/main.dir/src/asRank.cpp.obj	9ebd5812668162d0
+126	4343	7775935933127153	CMakeFiles/main.dir/src/problem.cpp.obj	a8d32e66f8e2744e
+116	5864	7775935933014098	CMakeFiles/main.dir/src/main.cpp.obj	c9bc14bea5a47d68
+5864	6130	7775935990498612	bin/main.exe	fb575c6c0c075d5f
+81	119	7777428473743252	C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_fast_ninja/CMakeFiles/cmake.verify_globs	e3590575d0c1a54b

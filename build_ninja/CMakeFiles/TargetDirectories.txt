@@ -1,0 +1,3 @@
+C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_ninja/CMakeFiles/main.dir
+C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_ninja/CMakeFiles/edit_cache.dir
+C:/Users/Vibe/Documents/knapsack-4aco-cpp-tcc-master/build_ninja/CMakeFiles/rebuild_cache.dir
